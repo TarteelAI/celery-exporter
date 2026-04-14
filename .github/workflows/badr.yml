@@ -1,14 +1,48 @@
+# Inlined BADR — fork repo can't use reusable workflows with secrets: inherit
 name: BADR
 
 on:
   push:
     branches: [master, add-badr-pipeline]
 
+env:
+  IMAGE: tarteel/celery-exporter
+  NAMESPACE: tarteel-deployments
+
 jobs:
-  celery-exporter:
-    uses: TarteelAI/infra/.github/workflows/badr.yml@main
-    with:
-      image: tarteel/celery-exporter
-      deployment: celery-exporter
-      clusters: '["tarteel-v3"]'
-    secrets: inherit
+  build-and-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.sha_short }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_TARTEEL_V3 }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+          kubectl set image deployment/celery-exporter \
+            celery-exporter=${{ env.IMAGE }}:${{ steps.vars.outputs.sha_short }} \
+            -n $NAMESPACE
+          kubectl rollout status deployment/celery-exporter \
+            -n $NAMESPACE --timeout=5m
