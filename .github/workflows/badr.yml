@@ -3,7 +3,7 @@ name: BADR
 
 on:
   push:
-    branches: [master, add-badr-pipeline]
+    branches: [master]
 
 env:
   IMAGE: tarteel/celery-exporter
