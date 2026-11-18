@@ -92,8 +92,14 @@ docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.s
 Using the Python binary (for-non Docker environments):
 ```sh
 curl -L https://github.com/danihodovic/celery-exporter/releases/download/latest/celery-exporter -o ./celery-exporter
-chmod+x ./celery-exporter
+chmod +x ./celery-exporter
 ./celery-exporter --broker-url=redis://redis.service.consul/1
+```
+
+From PyPI:
+
+```shell
+pip install prometheus-exporter-celery
 ```
 
 ###### Kubernetes
@@ -144,6 +150,11 @@ docker run -p 9808:9808 danihodovic/celery-exporter --broker-url=redis://redis.s
   --retry-interval=5
 ```
 
+##### Test for prometheus scrape target
+```sh
+curl 127.0.0.1:9808/metrics
+```
+
 ##### Grafana Dashboards & Prometheus Alerts
 
 Head over to the [Celery-mixin in this subdirectory](https://github.com/danihodovic/celery-exporter/tree/master/celery-mixin) to generate rules and dashboards suited to your Prometheus setup.
@@ -162,6 +173,7 @@ celery_task_retried_total | Sent if the task failed, but will be retried in the 
 celery_worker_up | Indicates if a worker has recently sent a heartbeat. | Gauge
 celery_worker_tasks_active | The number of tasks the worker is currently processing | Gauge
 celery_task_runtime_bucket | Histogram of runtime measurements for each task | Histogram
+celery_task_queue_wait_time_bucket | Histogram of the time tasks spend waiting in the queue before being executed, excluding deliberate ETA/countdown delay (retry backoff is delivered as an ETA and is excluded too). Requires [`task_send_sent_event`](https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-send-sent-event) to be enabled. Buckets are configurable via `--queue-wait-buckets`; the default spans 50ms-30min since queue waits blow past runtime-shaped buckets under backlog. | Histogram
 celery_queue_length | The number of message in broker queue | Gauge
 celery_active_consumer_count | The number of active consumer in broker queue **(Only work for [RabbitMQ and Qpid](https://qpid.apache.org/) broker, more details at [here](https://github.com/danihodovic/celery-exporter/pull/118#issuecomment-1169870481))** | Gauge
 celery_active_worker_count | The number of active workers in broker queue | Gauge
