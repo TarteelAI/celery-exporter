@@ -39,8 +39,12 @@ jobs:
       - name: Deploy
         run: |
           mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG_TARTEEL_V3 }}" | base64 -d > $HOME/.kube/config
+          echo "${{ secrets.KUBECONFIG_EKS_USW2 }}" | base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
+          if ! kubectl auth whoami; then
+            echo "::error::KUBECONFIG_EKS_USW2 was rejected by eks-usw2 (missing, expired or rotated?)"
+            exit 1
+          fi
           kubectl set image deployment/celery-exporter \
             celery-exporter=${{ env.IMAGE }}:${{ steps.vars.outputs.sha_short }} \
             -n $NAMESPACE
